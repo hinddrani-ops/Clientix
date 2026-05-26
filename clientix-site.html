@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clientix — Assistant IA pour votre business</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+:root {
+  --black: #0f0f0f;
+  --white: #ffffff;
+  --lime: #7dc400;
+  --lime-light: #edf9d0;
+  --grey: #f5f5f3;
+  --border: #e0e0dc;
+  --muted: #666;
+  --text: #333;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:#ffffff;color:#0f0f0f;font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+
+/* ── CURSOR ── */
+*{cursor:none!important;}
+.cursor{position:fixed;width:10px;height:10px;background:var(--black);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform 0.1s,width 0.2s,height 0.2s;}
+.cursor-ring{position:fixed;width:36px;height:36px;border:1px solid rgba(15,15,15,0.3);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:transform 0.15s ease,width 0.2s,height 0.2s,opacity 0.2s;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1.2rem 3rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid transparent;transition:all 0.3s;background:rgba(255,255,255,0.95);}
+nav.scrolled{background:rgba(255,255,255,0.98);border-bottom-color:var(--border);backdrop-filter:blur(12px);}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--black);}
+.nav-logo span{color:var(--lime);}
+.nav-cta{background:var(--black);color:#fff;padding:0.55rem 1.4rem;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.85rem;border:none;letter-spacing:0.02em;transition:all 0.2s;}
+.nav-cta:hover{background:#333;transform:translateY(-1px);}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:8rem 3rem 4rem;position:relative;overflow:hidden;background:#fff;}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(#e8e8e8 1px,transparent 1px),linear-gradient(90deg,#e8e8e8 1px,transparent 1px);background-size:60px 60px;opacity:0.6;}
+.hero-glow{position:absolute;top:-20%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(125,196,0,0.12) 0%,transparent 70%);pointer-events:none;}
+
+.hero-tag{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--lime);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:2rem;display:flex;align-items:center;gap:0.8rem;}
+.hero-tag::before{content:'';width:32px;height:1px;background:var(--lime);}
+
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,11vw,10rem);line-height:0.95;letter-spacing:0.02em;margin-bottom:2rem;position:relative;z-index:1;color:var(--black);}
+.hero h1 .outline{color:var(--black);}
+.hero h1 .lime{color:var(--lime);}
+
+.hero-sub{font-size:1.1rem;color:#444;max-width:480px;line-height:1.7;margin-bottom:3rem;position:relative;z-index:1;}
+
+.hero-actions{display:flex;gap:1rem;flex-wrap:wrap;position:relative;z-index:1;}
+.btn-main{background:var(--black);color:#fff;padding:1rem 2.5rem;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.08em;border:none;transition:all 0.2s;}
+.btn-main:hover{background:#333;transform:translateY(-2px);}
+.btn-ghost{background:transparent;color:var(--black);padding:1rem 2.5rem;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.08em;border:1px solid #bbb;transition:all 0.2s;}
+.btn-ghost:hover{border-color:var(--black);}
+
+.scroll-hint{position:absolute;bottom:2rem;left:3rem;font-family:'DM Mono',monospace;font-size:0.65rem;color:#999;letter-spacing:0.1em;display:flex;align-items:center;gap:0.6rem;}
+.scroll-line{width:40px;height:1px;background:#bbb;animation:scrollAnim 2s infinite;}
+@keyframes scrollAnim{0%,100%{width:40px;opacity:1}50%{width:20px;opacity:0.4}}
+
+/* ── STATS TICKER ── */
+.ticker{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1rem 0;overflow:hidden;white-space:nowrap;background:var(--grey);}
+.ticker-inner{display:inline-flex;gap:4rem;animation:tick 20s linear infinite;}
+.ticker-item{font-family:'DM Mono',monospace;font-size:0.72rem;color:#555;letter-spacing:0.1em;text-transform:uppercase;}
+.ticker-item span{color:var(--lime);margin-right:0.5rem;}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── HOW IT WORKS ── */
+.section{padding:6rem 3rem;background:#fff;}
+.section-eyebrow{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--lime);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:1rem;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4.5rem);line-height:1;margin-bottom:3rem;letter-spacing:0.03em;color:var(--black);}
+
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--border);}
+.step{background:#fff;padding:2.5rem 2rem;position:relative;overflow:hidden;transition:background 0.2s;}
+.step:hover{background:var(--grey);}
+.step-num{font-family:'Bebas Neue',sans-serif;font-size:5rem;color:#eee;line-height:1;position:absolute;top:1rem;right:1.5rem;transition:color 0.2s;}
+.step:hover .step-num{color:#e0f0c0;}
+.step-icon{font-size:1.8rem;margin-bottom:1rem;}
+.step h3{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.05em;margin-bottom:0.6rem;color:var(--black);}
+.step p{font-size:0.85rem;color:#555;line-height:1.6;}
+
+/* ── PRICING ── */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--border);}
+.plan{background:#fff;padding:2.5rem 2rem;display:flex;flex-direction:column;gap:1.2rem;transition:background 0.2s;position:relative;}
+.plan:hover{background:var(--grey);}
+.plan.featured{background:var(--black);}
+.plan-tag{font-family:'DM Mono',monospace;font-size:0.62rem;color:#888;letter-spacing:0.12em;text-transform:uppercase;}
+.plan.featured .plan-tag{color:var(--lime);}
+.plan-name{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--black);}
+.plan.featured .plan-name{color:#fff;}
+.plan-price{display:flex;align-items:baseline;gap:0.3rem;}
+.plan-price .amount{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;color:var(--lime);letter-spacing:-0.02em;}
+.plan-price .period{font-size:0.8rem;color:#999;font-family:'DM Mono',monospace;}
+.plan-setup{font-family:'DM Mono',monospace;font-size:0.7rem;color:#888;}
+.plan-divider{height:1px;background:var(--border);}
+.plan.featured .plan-divider{background:#333;}
+.plan-features{display:flex;flex-direction:column;gap:0.55rem;flex:1;}
+.plan-feature{font-size:0.85rem;color:#444;display:flex;align-items:center;gap:0.6rem;}
+.plan.featured .plan-feature{color:#ccc;}
+.plan-feature::before{content:'→';color:var(--lime);font-size:0.75rem;flex-shrink:0;}
+.plan-btn{background:var(--black);color:#fff;padding:0.85rem;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.06em;border:none;transition:all 0.2s;margin-top:auto;}
+.plan-btn:hover{background:#333;transform:translateY(-1px);}
+.plan-btn.ghost{background:var(--black);color:#fff;border:1px solid var(--black);}
+.plan-btn.ghost:hover{background:#333;border-color:#333;transform:translateY(-1px);}
+.plan.featured .plan-btn{background:var(--lime);color:var(--black);}
+.plan.featured .plan-btn:hover{background:#8fd400;}
+
+/* ── ONBOARDING MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border:1px solid var(--border);width:100%;max-width:620px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;}
+.modal-header{padding:1.8rem 2rem 1.2rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:#fff;z-index:10;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;color:var(--black);}
+.modal-sub{font-size:0.8rem;color:#888;margin-top:0.2rem;font-family:'DM Mono',monospace;}
+.modal-close{background:none;border:none;color:#888;font-size:1.4rem;padding:0.2rem;transition:color 0.2s;}
+.modal-close:hover{color:var(--black);}
+.plan-btn.ghost{background:transparent;color:var(--white);border:1px solid #555;}
+/* Progress bar */
+.progress-bar{height:2px;background:var(--border);}
+.progress-fill{height:100%;background:var(--lime);transition:width 0.4s ease;}
+
+.modal-body{padding:2rem;display:flex;flex-direction:column;gap:1.5rem;background:#fff;}
+/* Steps */
+.form-step{display:none;}
+.form-step.active{display:flex;flex-direction:column;gap:1.2rem;}
+.step-indicator{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--lime);letter-spacing:0.12em;text-transform:uppercase;}
+.field{display:flex;flex-direction:column;gap:0.4rem;}
+.field label{font-size:0.72rem;color:#666;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;}
+.field input,.field textarea,.field select{background:#f9f9f7;border:1px solid var(--border);color:var(--black);padding:0.8rem 1rem;font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.2s;width:100%;}
+.field input::placeholder,.field textarea::placeholder{color:#999;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--lime);background:#fff;}
+.field textarea{min-height:80px;resize:vertical;}
+.field select option{background:#fff;}
+.sector-pills{display:flex;flex-wrap:wrap;gap:0.5rem;}
+.pill{padding:0.45rem 0.9rem;border:1px solid var(--border);color:#555;font-size:0.8rem;background:none;transition:all 0.15s;}
+.pill:hover{border-color:#999;color:var(--black);}
+.pill.active{border-color:var(--lime);color:var(--lime);background:#f0fad0;}
+.modal-actions{display:flex;gap:0.8rem;justify-content:flex-end;padding:1.5rem 2rem;border-top:1px solid var(--border);position:sticky;bottom:0;background:#fff;}
+.btn-next{background:var(--black);color:#fff;padding:0.8rem 2rem;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.06em;border:none;transition:all 0.2s;}
+.btn-next:hover{background:#333;}
+.btn-next:disabled{opacity:0.4;}
+.btn-back{background:none;border:1px solid #ccc;color:#666;padding:0.8rem 1.5rem;font-family:'DM Mono',monospace;font-size:0.75rem;transition:all 0.2s;}
+.btn-back:hover{border-color:#999;color:var(--black);}
+
+/* Payment step */
+.plan-summary{background:var(--grey);border:1px solid var(--border);padding:1.2rem;display:flex;justify-content:space-between;align-items:center;}
+.plan-summary-name{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:0.05em;color:var(--black);}
+.plan-summary-price{font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--lime);}
+#card-element{background:var(--grey);border:1px solid var(--border);padding:0.9rem 1rem;transition:border-color 0.2s;}
+#card-element.focused{border-color:var(--lime);}
+#card-errors{color:#cc0000;font-size:0.78rem;font-family:'DM Mono',monospace;margin-top:0.4rem;min-height:1rem;}
+.stripe-badge{display:flex;align-items:center;gap:0.5rem;font-family:'DM Mono',monospace;font-size:0.65rem;color:#999;}
+.stripe-badge svg{width:40px;opacity:0.5;}
+/* Success screen */
+.success-screen{display:none;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem;text-align:center;gap:1.5rem;}
+.success-screen.show{display:flex;}
+.success-icon{width:72px;height:72px;background:var(--lime);display:flex;align-items:center;justify-content:center;font-size:2rem;}
+.success-title{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:0.05em;color:var(--black);}
+.success-sub{font-size:0.9rem;color:#555;line-height:1.7;max-width:400px;}
+/* Live preview inside modal */
+.preview-box{background:var(--grey);border:1px solid var(--border);padding:1rem;border-left:3px solid var(--lime);}
+.preview-box-title{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--lime);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.8rem;}
+.preview-chat{display:flex;flex-direction:column;gap:0.6rem;max-height:160px;overflow-y:auto;}
+.preview-msg{padding:0.6rem 0.8rem;font-size:0.8rem;line-height:1.5;max-width:85%;}
+.preview-msg.bot{background:#fff;border:1px solid var(--border);color:#444;align-self:flex-start;}
+.preview-msg.user{background:var(--black);color:#fff;align-self:flex-end;font-weight:500;}
+/* ── FAQ ── */
+.faq{display:flex;flex-direction:column;gap:0;}
+.faq-item{border-bottom:1px solid var(--border);}
+.faq-q{padding:1.3rem 0;font-size:0.95rem;font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:1rem;color:var(--black);}
+.faq-q .arrow{color:var(--lime);font-size:1.1rem;flex-shrink:0;transition:transform 0.2s;}
+.faq-item.open .arrow{transform:rotate(45deg);}
+.faq-a{font-size:0.85rem;color:#555;line-height:1.7;max-height:0;overflow:hidden;transition:max-height 0.3s ease,padding 0.3s;}
+.faq-item.open .faq-a{max-height:200px;padding-bottom:1.2rem;}
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:2.5rem 3rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;background:#fff;}
+.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--black);}
+.footer-logo span{color:var(--lime);}
+.footer-links{display:flex;gap:2rem;}
+.footer-links a{font-family:'DM Mono',monospace;font-size:0.7rem;color:#888;text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+.footer-links a:hover{color:var(--black);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.65rem;color:#999;}
+
+/* ── UTILS ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+@media(max-width:768px){
+  nav{padding:1rem 1.5rem;}
+  .hero,.section{padding-left:1.5rem;padding-right:1.5rem;}
+  .hero h1{font-size:4.5rem;}
+  footer{padding:2rem 1.5rem;}
+  .footer-links{display:none;}
+  *{cursor:auto!important;}
+  .cursor,.cursor-ring{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">Client<span>ix</span></div>
+  <button class="nav-cta" onclick="openModal('PRO')">Démarrer →</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-tag">Assistant IA · Genève · Sans contact humain</div>
+  <h1>
+    Votre business<br>
+    <span class="outline">répond</span><br>
+    <span class="lime">24h/24</span>
+  </h1>
+  <p class="hero-sub">Un assistant IA répond à vos clients à votre place — questions, réservations, devis. Configuré en 5 minutes, actif en 24h.</p>
+  <div class="hero-actions">
+    <button class="btn-main" onclick="openModal('PRO')">Commencer maintenant</button>
+    <button class="btn-ghost" onclick="document.getElementById('pricing').scrollIntoView()">Voir les formules</button>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    Défiler
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <span class="ticker-item"><span>80%</span> des questions sont répétitives</span>
+    <span class="ticker-item"><span>24/7</span> disponibilité garantie</span>
+    <span class="ticker-item"><span>24h</span> pour être en ligne</span>
+    <span class="ticker-item"><span>0</span> compétence technique requise</span>
+    <span class="ticker-item"><span>10+</span> secteurs supportés</span>
+    <span class="ticker-item"><span>3×</span> plus de conversions</span>
+    <span class="ticker-item"><span>80%</span> des questions sont répétitives</span>
+    <span class="ticker-item"><span>24/7</span> disponibilité garantie</span>
+    <span class="ticker-item"><span>24h</span> pour être en ligne</span>
+    <span class="ticker-item"><span>0</span> compétence technique requise</span>
+    <span class="ticker-item"><span>10+</span> secteurs supportés</span>
+    <span class="ticker-item"><span>3×</span> plus de conversions</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section reveal">
+  <div class="section-eyebrow">// Comment ça marche</div>
+  <div class="section-title">En ligne en 24h</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-icon">📋</div>
+      <h3>Vous remplissez</h3>
+      <p>Nom, secteur, horaires, services. 5 minutes, pas de technique.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-icon">⚡</div>
+      <h3>On configure</h3>
+      <p>Votre assistant IA est créé et entraîné sur votre business sous 24h.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-icon">🚀</div>
+      <h3>C'est en ligne</h3>
+      <p>On installe le chatbot sur votre site. Vos clients peuvent déjà écrire.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-icon">💰</div>
+      <h3>Vous encaissez</h3>
+      <p>Plus de clients convertis 24/7. Vous ne ratez plus aucune opportunité.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section reveal" id="pricing">
+  <div class="section-eyebrow">// Formules</div>
+  <div class="section-title">Transparent. Sans surprise.</div>
+  <div class="pricing-grid">
+    <div class="plan">
+      <div class="plan-tag">Starter</div>
+      <div class="plan-name">Chatbot Site Web</div>
+      <div class="plan-price"><span class="amount">150</span><span class="period">CHF/mois</span></div>
+      <div class="plan-setup">+ 800 CHF setup unique</div>
+      <div class="plan-divider"></div>
+      <div class="plan-features">
+        <div class="plan-feature">Assistant IA sur votre site</div>
+        <div class="plan-feature">Répond 24h/24, 7j/7</div>
+        <div class="plan-feature">Français + Anglais</div>
+        <div class="plan-feature">Installation incluse</div>
+        <div class="plan-feature">Support par email</div>
+      </div>
+      <button class="plan-btn ghost" onclick="openModal('STARTER')">Choisir Starter</button>
+    </div>
+    <div class="plan featured">
+      <div class="plan-tag">⭐ Le plus populaire — Pro</div>
+      <div class="plan-name">Agent WhatsApp</div>
+      <div class="plan-price"><span class="amount">200</span><span class="period">CHF/mois</span></div>
+      <div class="plan-setup">+ 1 200 CHF setup unique</div>
+      <div class="plan-divider"></div>
+      <div class="plan-features">
+        <div class="plan-feature">Tout Starter +</div>
+        <div class="plan-feature">Agent WhatsApp Business</div>
+        <div class="plan-feature">Prise de RDV automatique</div>
+        <div class="plan-feature">Multilingue (4 langues)</div>
+        <div class="plan-feature">Support prioritaire</div>
+      </div>
+      <button class="plan-btn" onclick="openModal('PRO')">Choisir Pro</button>
+    </div>
+    <div class="plan">
+      <div class="plan-tag">Premium</div>
+      <div class="plan-name">Automatisation Complète</div>
+      <div class="plan-price"><span class="amount">300</span><span class="period">CHF/mois</span></div>
+      <div class="plan-setup">+ 1 800 CHF setup unique</div>
+      <div class="plan-divider"></div>
+      <div class="plan-features">
+        <div class="plan-feature">Tout Pro +</div>
+        <div class="plan-feature">Réponses email automatiques</div>
+        <div class="plan-feature">Intégration agenda Google</div>
+        <div class="plan-feature">Tableau de bord analytics</div>
+        <div class="plan-feature">Account manager dédié</div>
+      </div>
+      <button class="plan-btn ghost" onclick="openModal('PREMIUM')">Choisir Premium</button>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section reveal">
+  <div class="section-eyebrow">// Questions fréquentes</div>
+  <div class="section-title">Tout ce que vous voulez savoir</div>
+  <div class="faq">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Est-ce que je dois avoir des compétences techniques ? <span class="arrow">+</span></div>
+      <div class="faq-a">Non. Vous remplissez un formulaire simple — nom, horaires, services. On s'occupe de tout le reste. Aucun code, aucune technique.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">En combien de temps c'est en ligne ? <span class="arrow">+</span></div>
+      <div class="faq-a">Votre assistant est configuré et installé en 24h ouvrées après réception de vos informations et du paiement.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Que se passe-t-il si le chatbot ne sait pas répondre ? <span class="arrow">+</span></div>
+      <div class="faq-a">Il demande poliment les coordonnées du client et vous envoie une notification. Vous rappellez quand vous voulez.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Puis-je résilier à tout moment ? <span class="arrow">+</span></div>
+      <div class="faq-a">Oui, avec 30 jours de préavis. Le frais de setup n'est pas remboursable, mais l'abonnement mensuel est sans engagement.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">Est-ce que ça marche pour mon secteur ? <span class="arrow">+</span></div>
+      <div class="faq-a">Oui. On couvre plus de 10 secteurs : restaurant, garage, cabinet médical, boutique, coiffeur, agence, immobilier, fitness et plus encore.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Client<span>ix</span></div>
+  <div class="footer-links">
+    <a href="#">Mentions légales</a>
+    <a href="#">Confidentialité</a>
+    <a href="mailto:contact@clientix.ch">Contact</a>
+  </div>
+  <div class="footer-copy">© 2025 Clientix · Genève, Suisse</div>
+</footer>
+
+<!-- ONBOARDING MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-plan-title">Formule Pro</div>
+        <div class="modal-sub" id="modal-step-label">Étape 1/3 — Votre business</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:33%"></div></div>
+
+    <div class="modal-body" id="modal-body">
+
+      <!-- STEP 1: Business info -->
+      <div class="form-step active" id="step-1">
+        <div class="step-indicator">01 — Votre secteur</div>
+        <div class="sector-pills" id="sector-pills">
+          <button class="pill" data-s="restaurant" onclick="selectPill(this)">🍽 Restaurant</button>
+          <button class="pill" data-s="garage" onclick="selectPill(this)">🔧 Garage</button>
+          <button class="pill" data-s="cabinet" onclick="selectPill(this)">🏥 Cabinet médical</button>
+          <button class="pill" data-s="avocat" onclick="selectPill(this)">⚖️ Avocat</button>
+          <button class="pill" data-s="boutique" onclick="selectPill(this)">🛍 Boutique</button>
+          <button class="pill" data-s="coiffeur" onclick="selectPill(this)">✂️ Coiffeur</button>
+          <button class="pill" data-s="agence" onclick="selectPill(this)">💼 Agence</button>
+          <button class="pill" data-s="immobilier" onclick="selectPill(this)">🏠 Immobilier</button>
+          <button class="pill" data-s="fitness" onclick="selectPill(this)">💪 Fitness</button>
+          <button class="pill" data-s="autre" onclick="selectPill(this)">⚡ Autre</button>
+        </div>
+        <div class="field">
+          <label>Nom de votre business *</label>
+          <input id="f-name" type="text" placeholder="Ex: Garage Müller, Cabinet Rossi..." oninput="updateLivePreview()">
+        </div>
+        <div class="field">
+          <label>Ville *</label>
+          <input id="f-city" type="text" placeholder="Ex: Genève, Lausanne, Carouge...">
+        </div>
+        <div class="field">
+          <label>Horaires</label>
+          <input id="f-hours" type="text" placeholder="Ex: Lun-Ven 8h-18h, Sam 9h-13h">
+        </div>
+      </div>
+
+      <!-- STEP 2: Details + preview -->
+      <div class="form-step" id="step-2">
+        <div class="step-indicator">02 — Détails & aperçu</div>
+        <div class="field">
+          <label>Téléphone</label>
+          <input id="f-phone" type="text" placeholder="022 XXX XX XX">
+        </div>
+        <div class="field">
+          <label>Vos services / spécialités</label>
+          <textarea id="f-services" placeholder="Ex: Réparations toutes marques, vidange, devis gratuit..."></textarea>
+        </div>
+        <div class="field">
+          <label>Info supplémentaire</label>
+          <textarea id="f-extra" placeholder="Ex: Parking gratuit, 3e génération, livraison possible..."></textarea>
+        </div>
+        <div class="preview-box">
+          <div class="preview-box-title">// Aperçu de votre assistant</div>
+          <div class="preview-chat" id="preview-chat">
+            <div class="preview-msg bot" id="preview-welcome">Configurez votre business pour voir l'aperçu...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Payment -->
+      <div class="form-step" id="step-3">
+        <div class="step-indicator">03 — Paiement sécurisé</div>
+        <div class="plan-summary">
+          <div>
+            <div class="plan-summary-name" id="pay-plan-name">Formule Pro</div>
+            <div style="font-size:0.75rem;color:#888;font-family:'DM Mono',monospace;">Setup unique + 1er mois inclus</div>
+          </div>
+          <div class="plan-summary-price" id="pay-plan-price">1 400 CHF</div>
+        </div>
+        <div class="field">
+          <label>Email *</label>
+          <input id="f-email" type="email" placeholder="votre@email.com">
+        </div>
+        <div class="field">
+          <label>Carte bancaire</label>
+          <div id="card-element"></div>
+          <div id="card-errors"></div>
+        </div>
+        <div class="stripe-badge">
+          <svg viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg"><text x="0" y="18" font-family="Arial" font-size="14" fill="#6772e5" font-weight="bold">stripe</text></svg>
+          Paiement sécurisé par Stripe · SSL · PCI DSS
+        </div>
+        <div style="background:#f0fad0;border:1px solid #c5e87a;padding:0.8rem 1rem;font-size:0.78rem;color:#3a6600;font-family:'DM Mono',monospace;line-height:1.6;">
+          ⚡ Après paiement, votre assistant IA est configuré et livré sous 24h ouvrées.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Success screen -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Commande confirmée !</div>
+      <div class="success-sub">Votre assistant Clientix est en cours de configuration. Vous recevrez un email dans les 24h avec votre chatbot prêt à intégrer.</div>
+      <button class="btn-main" onclick="closeModal()">Fermer</button>
+    </div>
+
+    <div class="modal-actions" id="modal-actions">
+      <button class="btn-back" id="btn-back" onclick="prevStep()" style="display:none;">← Retour</button>
+      <button class="btn-next" id="btn-next" onclick="nextStep()">Suivant →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CURSOR ────────────────────────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+  setTimeout(() => { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; }, 80);
+});
+
+// ── NAV SCROLL ────────────────────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+// ── REVEAL ────────────────────────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── FAQ ───────────────────────────────────────────────────────────────────
+function toggleFaq(el) {
+  el.parentElement.classList.toggle('open');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────
+let currentStep = 1;
+let selectedPlan = 'PRO';
+let selectedSector = '';
+
+const PLANS = {
+  STARTER: { name: 'Formule Starter', price: '950 CHF', monthly: 150, setup: 800 },
+  PRO:     { name: 'Formule Pro',     price: '1 400 CHF', monthly: 200, setup: 1200 },
+  PREMIUM: { name: 'Formule Premium', price: '2 100 CHF', monthly: 300, setup: 1800 },
+};
+
+function openModal(plan) {
+  selectedPlan = plan;
+  currentStep = 1;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  updateModalUI();
+  initStripe();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function updateModalUI() {
+  const p = PLANS[selectedPlan];
+  document.getElementById('modal-plan-title').textContent = p.name;
+  document.getElementById('modal-step-label').textContent = `Étape ${currentStep}/3`;
+  document.getElementById('progress-fill').style.width = (currentStep / 3 * 100) + '%';
+  document.getElementById('pay-plan-name').textContent = p.name;
+  document.getElementById('pay-plan-price').textContent = p.price;
+
+  document.querySelectorAll('.form-step').forEach((s, i) => {
+    s.classList.toggle('active', i + 1 === currentStep);
+  });
+
+  document.getElementById('btn-back').style.display = currentStep > 1 ? 'block' : 'none';
+  document.getElementById('btn-next').textContent = currentStep === 3 ? '💳 Payer et démarrer' : 'Suivant →';
+  document.getElementById('modal-actions').style.display = 'flex';
+  document.getElementById('success-screen').classList.remove('show');
+}
+
+function nextStep() {
+  if (currentStep === 1) {
+    if (!selectedSector || !document.getElementById('f-name').value.trim()) {
+      alert('Veuillez choisir votre secteur et entrer le nom de votre business.');
+      return;
+    }
+    buildPreview();
+  }
+  if (currentStep === 3) {
+    handlePayment();
+    return;
+  }
+  currentStep++;
+  updateModalUI();
+}
+
+function prevStep() {
+  if (currentStep > 1) { currentStep--; updateModalUI(); }
+}
+
+function selectPill(btn) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSector = btn.dataset.s;
+  updateLivePreview();
+}
+
+const SECTOR_WELCOME = {
+  restaurant: '🍽 Bonjour ! Je suis l\'assistant de {NAME}. Vous souhaitez réserver une table ou voir notre menu ?',
+  garage: '🔧 Bonjour ! Je suis l\'assistant de {NAME}. Besoin d\'un RDV ou d\'un devis rapide ?',
+  cabinet: '🏥 Bonjour, je suis l\'assistant du {NAME}. Je peux vous aider à prendre rendez-vous.',
+  avocat: '⚖️ Bonjour, je suis l\'assistant de {NAME}. Comment puis-je vous orienter ?',
+  boutique: '🛍 Bonjour ! Bienvenue chez {NAME}. Je suis là pour vous aider 😊',
+  coiffeur: '✂️ Bonjour ! Je suis l\'assistant de {NAME}. Envie de prendre RDV ?',
+  agence: '💼 Bonjour, je suis l\'assistant de {NAME}. Parlez-moi de votre projet !',
+  immobilier: '🏠 Bonjour ! Je suis l\'assistant de {NAME}. Achat, vente ou location ?',
+  fitness: '💪 Hey ! Je suis l\'assistant de {NAME}. Prêt à commencer ?',
+  autre: '👋 Bonjour ! Je suis l\'assistant de {NAME}. Comment puis-je vous aider ?'
+};
+
+function updateLivePreview() {
+  const name = document.getElementById('f-name').value.trim() || 'votre business';
+  const welcome = selectedSector
+    ? SECTOR_WELCOME[selectedSector].replace('{NAME}', name)
+    : 'Configurez votre business pour voir l\'aperçu...';
+  document.getElementById('preview-welcome').textContent = welcome;
+}
+
+function buildPreview() {
+  updateLivePreview();
+  const chat = document.getElementById('preview-chat');
+  // Add example exchange
+  if (chat.children.length < 3) {
+    const userMsg = document.createElement('div');
+    userMsg.className = 'preview-msg user';
+    userMsg.textContent = 'Quels sont vos horaires ?';
+    chat.appendChild(userMsg);
+    const hours = document.getElementById('f-hours').value || 'nous contacter pour les horaires';
+    const botMsg = document.createElement('div');
+    botMsg.className = 'preview-msg bot';
+    botMsg.textContent = `Nos horaires : ${hours}. N'hésitez pas si vous avez d'autres questions ! 😊`;
+    chat.appendChild(botMsg);
+  }
+}
+
+// ── STRIPE ────────────────────────────────────────────────────────────────
+let stripe, cardElement;
+
+function initStripe() {
+  // REMPLACE pk_test_... par ta vraie clé publique Stripe
+  const STRIPE_KEY = 'pk_test_REMPLACE_PAR_TA_CLE_STRIPE';
+  try {
+    stripe = Stripe(STRIPE_KEY);
+    const elements = stripe.elements();
+    cardElement = elements.create('card', {
+      style: {
+        base: {
+          color: '#f0ede6',
+          fontFamily: 'DM Mono, monospace',
+          fontSize: '14px',
+          '::placeholder': { color: '#444' }
+        }
+      }
+    });
+    cardElement.mount('#card-element');
+    cardElement.on('focus', () => document.getElementById('card-element').classList.add('focused'));
+    cardElement.on('blur', () => document.getElementById('card-element').classList.remove('focused'));
+    cardElement.on('change', e => {
+      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+    });
+  } catch(e) {
+    document.getElementById('card-element').innerHTML = '<div style="color:#555;font-family:DM Mono,monospace;font-size:0.75rem;padding:0.5rem 0;">⚠️ Stripe non configuré — remplace la clé dans le code</div>';
+  }
+}
+
+async function handlePayment() {
+  const email = document.getElementById('f-email').value.trim();
+  if (!email) { alert('Veuillez entrer votre email.'); return; }
+
+  document.getElementById('btn-next').textContent = 'Traitement...';
+  document.getElementById('btn-next').disabled = true;
+
+  // En production : créer un PaymentIntent côté serveur et confirmer ici
+  // Pour la démo : on simule le succès après 1.5s
+  setTimeout(() => {
+    document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('modal-actions').style.display = 'none';
+    document.getElementById('success-screen').classList.add('show');
+  }, 1500);
+}
+
+// ── SCROLL LOCK ───────────────────────────────────────────────────────────
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+</script>
+</body>
+</html>
